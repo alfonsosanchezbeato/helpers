@@ -55,7 +55,7 @@ qemu-system-x86_64 $accel \
     -netdev user,id=net0,hostfwd=tcp::"$QEMU_SSH_PORT"-:22,hostfwd=tcp::$((QEMU_SSH_PORT+100))-:31111,hostname=qemu \
     -device virtio-net-pci,netdev=net0 \
     -drive file="$img",if=none,format="$format",id=disk1 \
-    -device "$disk_driver",drive=disk1,bootindex=1 \
+    -device "$disk_driver",drive=disk1,bootindex=1,serial=DISK000A \
     -usb -device usb-ehci,id=ehci \
     -nographic \
     -serial mon:stdio "$@"
