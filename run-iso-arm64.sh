@@ -22,10 +22,33 @@ disk=$2
 rm -f "$disk"
 truncate -s "$DISK_SIZE" "$disk"
 
+# Locate the aarch64 UEFI firmware. Search the well-known Linux AAVMF/edk2
+# locations first, then the data dirs QEMU itself reports via "-L help" (this
+# covers Homebrew/macOS regardless of the installed version).
+firmware=
+fw_names="AAVMF_CODE.fd QEMU_EFI.fd QEMU_EFI-pflash.raw QEMU_EFI-silent-pflash.raw edk2-aarch64-code.fd"
+fw_dirs="/usr/share/AAVMF /usr/share/qemu-efi-aarch64 /usr/share/edk2/aarch64 /usr/share/qemu"
+fw_dirs="$fw_dirs $(qemu-system-aarch64 -L help 2>/dev/null || true)"
+
+for d in $fw_dirs; do
+    [ -d "$d" ] || continue
+    for n in $fw_names; do
+        if [ -f "$d/$n" ]; then
+            firmware=$d/$n
+            break 2
+        fi
+    done
+done
+
+if [ -z "$firmware" ]; then
+    printf "Could not locate aarch64 UEFI firmware\n" >&2
+    exit 1
+fi
+
 # See also https://jimmyg.org/blog/2024/macos-qemu/index.html
 qemu-system-aarch64 -machine virt -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -smp "$QEMU_SMP" -m "$QEMU_MEM" \
-                        -bios /opt/homebrew/Cellar/qemu/11.0.1/share/qemu/edk2-aarch64-code.fd \
+                        -bios "$firmware" \
                         -cdrom "$image" \
                         -netdev user,id=net0,hostfwd=tcp::8022-:22 \
                         -device virtio-net-pci,netdev=net0 \

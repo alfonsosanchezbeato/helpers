@@ -19,16 +19,35 @@ shift
 : "${QEMU_MEM:=4096}"
 : "${QEMU_PORT:=8022}"
 
-# Alternative bios (AAVMF on Ubuntu, homebrew on MacOS):
-# -bios /usr/share/AAVMF/AAVMF_CODE.fd
-# -bios /opt/homebrew/Cellar/qemu/11.0.1/share/qemu/edk2-aarch64-code.fd
+# Locate the aarch64 UEFI firmware. Search the well-known Linux AAVMF/edk2
+# locations first, then the data dirs QEMU itself reports via "-L help" (this
+# covers Homebrew/macOS regardless of the installed version).
+firmware=
+fw_names="AAVMF_CODE.fd QEMU_EFI.fd QEMU_EFI-pflash.raw QEMU_EFI-silent-pflash.raw edk2-aarch64-code.fd"
+fw_dirs="/usr/share/AAVMF /usr/share/qemu-efi-aarch64 /usr/share/edk2/aarch64 /usr/share/qemu"
+fw_dirs="$fw_dirs $(qemu-system-aarch64 -L help 2>/dev/null || true)"
+
+for d in $fw_dirs; do
+    [ -d "$d" ] || continue
+    for n in $fw_names; do
+        if [ -f "$d/$n" ]; then
+            firmware=$d/$n
+            break 2
+        fi
+    done
+done
+
+if [ -z "$firmware" ]; then
+    printf "Could not locate aarch64 UEFI firmware\n" >&2
+    exit 1
+fi
+
+# Alternative non-UEFI bios:
 # -bios u-boot.bin
-# Alternative bios (FDE not tested yet):
-# -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd
 # See also https://jimmyg.org/blog/2024/macos-qemu/index.html
 qemu-system-aarch64 -machine virt  -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -smp "$QEMU_SMP" -m "$QEMU_MEM" \
-                        -bios /opt/homebrew/Cellar/qemu/11.0.1/share/qemu/edk2-aarch64-code.fd \
+                        -bios "$firmware" \
                         -netdev user,id=net0,hostfwd=tcp::"$QEMU_PORT"-:22 \
                         -device virtio-net-pci,netdev=net0 \
                         -drive if=virtio,file="$image",format=raw \

@@ -30,13 +30,35 @@ finish() {
 }
 trap finish EXIT
 
-sb_bios=/usr/share/AAVMF/AAVMF_CODE.fd
+# Locate the aarch64 UEFI firmware. Search the well-known Linux AAVMF/edk2
+# locations first, then the data dirs QEMU itself reports via "-L help" (this
+# covers Homebrew/macOS regardless of the installed version).
+firmware=
+fw_names="AAVMF_CODE.fd QEMU_EFI.fd QEMU_EFI-pflash.raw QEMU_EFI-silent-pflash.raw edk2-aarch64-code.fd"
+fw_dirs="/usr/share/AAVMF /usr/share/qemu-efi-aarch64 /usr/share/edk2/aarch64 /usr/share/qemu"
+fw_dirs="$fw_dirs $(qemu-system-aarch64 -L help 2>/dev/null || true)"
+
+for d in $fw_dirs; do
+    [ -d "$d" ] || continue
+    for n in $fw_names; do
+        if [ -f "$d/$n" ]; then
+            firmware=$d/$n
+            break 2
+        fi
+    done
+done
+
+if [ -z "$firmware" ]; then
+    printf "Could not locate aarch64 UEFI firmware\n" >&2
+    exit 1
+fi
+
 tpm_sock=/var/snap/test-snapd-swtpm/current/swtpm-sock
 
 # Re: random numbers, see https://bugzilla.redhat.com/show_bug.cgi?id=1579518
 
 qemu-system-aarch64 -machine virt -cpu cortex-a57 -smp 2 -m 4096 \
- 	-drive file=$sb_bios,if=pflash,format=raw,unit=0,readonly=on \
+ 	-drive file="$firmware",if=pflash,format=raw,unit=0,readonly=on \
  	-drive file=AAVMF_VARS.ms.fd,if=pflash,format=raw,unit=1 \
         -netdev user,id=net0,hostfwd=tcp::8022-:22 \
         -device virtio-net-pci,netdev=net0 \
