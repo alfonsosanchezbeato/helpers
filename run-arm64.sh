@@ -58,7 +58,7 @@ qemu-system-aarch64 -machine virt  -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -device virtio-gpu-pci \
                         -device virtio-keyboard \
                         -device virtio-mouse \
-                        -serial stdio "$@"
+                        -serial mon:stdio "$@"
 exit 0
 
 # It does not look like u-boot is able to load from LINUX_EFI_INITRD_MEDIA_GUID device path
