@@ -3,7 +3,7 @@
 # To install dependencies:
 # sudo apt install qemu-system-arm qemu-efi-aarch64
 
-if [ $# -ne 2 ]; then
+if [ $# -lt 2 ]; then
     printf "Usage: %s <iso> <disk_file>\n" "$(basename "$0")"
     exit 1
 fi
