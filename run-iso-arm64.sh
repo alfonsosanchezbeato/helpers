@@ -1,5 +1,8 @@
 #!/bin/sh -exu
 
+# To install dependencies:
+# sudo apt install qemu-system-arm qemu-efi-aarch64
+
 if [ $# -ne 2 ]; then
     printf "Usage: %s <iso> <disk_file>\n" "$(basename "$0")"
     exit 1
@@ -56,4 +59,4 @@ qemu-system-aarch64 -machine virt -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -device virtio-gpu-pci \
                         -device virtio-keyboard \
                         -device virtio-mouse \
-                        -serial stdio
+                        -serial stdio "$@"
