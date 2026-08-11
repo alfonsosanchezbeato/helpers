@@ -54,5 +54,5 @@ sb_bios=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd
 	-tpmdev emulator,id=tpm0,chardev=chrtpm \
 	-device tpm-tis,tpmdev=tpm0 \
 	-drive "file=$img",if=none,format=raw,id=disk1 \
-	-device virtio-blk-pci,drive=disk1,bootindex=1 \
+	-device virtio-blk-pci,drive=disk1,bootindex=1,serial=DISK000A \
 	-serial mon:stdio "$@"

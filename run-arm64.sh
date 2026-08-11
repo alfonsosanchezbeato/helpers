@@ -54,7 +54,8 @@ qemu-system-aarch64 -machine virt  -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -bios "$firmware" \
                         -netdev user,id=net0,hostfwd=tcp::"$QEMU_PORT"-:22 \
                         -device virtio-net-pci,netdev=net0 \
-                        -drive if=virtio,file="$image",format=raw \
+                        -drive file="$image",if=none,format=raw,id=disk1 \
+                        -device virtio-blk-pci,drive=disk1,serial=DISK000A \
                         -device virtio-gpu-pci \
                         -device virtio-keyboard \
                         -device virtio-mouse \

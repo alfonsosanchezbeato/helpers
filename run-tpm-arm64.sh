@@ -63,7 +63,7 @@ qemu-system-aarch64 -machine virt -cpu cortex-a57 -smp 2 -m 4096 \
         -netdev user,id=net0,hostfwd=tcp::8022-:22 \
         -device virtio-net-pci,netdev=net0 \
  	-drive "file=$1",if=none,format=raw,id=disk1 \
- 	-device virtio-blk-pci,drive=disk1,bootindex=1 \
+	-device virtio-blk-pci,drive=disk1,bootindex=1,serial=DISK000A \
         -chardev socket,id=chrtpm,path=$tpm_sock \
 	-tpmdev emulator,id=tpm0,chardev=chrtpm \
 	-device tpm-tis-device,tpmdev=tpm0 \
