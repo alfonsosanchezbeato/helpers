@@ -15,7 +15,7 @@ shift
 # start_image() returned 0x8000000000000003. TCG's max CPU advertises the needed
 # CPU features, but is slower. For non-64k kernels on MacOS, override with:
 # QEMU_ACCEL=hvf QEMU_CPU=host ./run-iso-arm64.sh <iso> <disk_file>
-# Note that kvm accel can be used on non-MacOS arm silicon.
+# Note that kvm accel can be used on non-MacOS arm silicon, also for 64k kernels.
 : "${QEMU_ACCEL:=tcg,thread=multi}"
 # QEMU_CPU: use max or cortex-a57 on x86
 : "${QEMU_CPU:=max}"
