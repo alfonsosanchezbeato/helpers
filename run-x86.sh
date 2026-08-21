@@ -12,6 +12,16 @@ shift
 : "${QEMU_SMP:=2}"
 : "${QEMU_MEM:=4096}"
 
+# RHEL-family QEMU packages use /usr/libexec/qemu-kvm for the native system
+# emulator. Keep the upstream binary name for cross-architecture emulation.
+if [ -z "${QEMU_BIN:-}" ]; then
+    QEMU_BIN=qemu-system-x86_64
+    if [ -f /etc/redhat-release ] && [ "$(uname -m)" = x86_64 ] && \
+            [ -x /usr/libexec/qemu-kvm ]; then
+        QEMU_BIN=/usr/libexec/qemu-kvm
+    fi
+fi
+
 # For older UC: driver cannot be virtio-blk-pci as kernels did not include
 # that kernel module in the initramfs. Alternative: use "driver=ide-hd".
 disk_driver=virtio-blk-pci
@@ -30,7 +40,7 @@ fw_names=(OVMF_CODE_4M.fd OVMF_CODE.fd edk2-x86_64-code.fd)
 fw_dirs=(/usr/share/OVMF /usr/share/qemu)
 while read -r d; do
     [ -d "$d" ] && fw_dirs+=("$d")
-done < <(qemu-system-x86_64 -L help 2>/dev/null)
+done < <("$QEMU_BIN" -L help 2>/dev/null || true)
 
 for d in "${fw_dirs[@]}"; do
     for n in "${fw_names[@]}"; do
@@ -49,7 +59,7 @@ fi
 # No KVM on a non-Linux host (e.g. Apple Silicon); fall back to TCG emulation.
 [ -e /dev/kvm ] || accel=
 
-qemu-system-x86_64 $accel \
+"$QEMU_BIN" $accel \
     -smp "$QEMU_SMP" -m "$QEMU_MEM" \
     -drive file="$firmware",if=pflash,unit=0,readonly=on \
     -netdev user,id=net0,hostfwd=tcp::"$QEMU_SSH_PORT"-:22,hostfwd=tcp::$((QEMU_SSH_PORT+100))-:31111,hostname=qemu \

@@ -21,6 +21,16 @@ shift 2
 : "${QEMU_SSH_PORT:=8022}"
 : "${DISK_SIZE:=50G}"
 
+# RHEL-family QEMU packages use /usr/libexec/qemu-kvm for the native system
+# emulator. Keep the upstream binary name for cross-architecture emulation.
+if [ -z "${QEMU_BIN:-}" ]; then
+    QEMU_BIN=qemu-system-x86_64
+    if [ -f /etc/redhat-release ] && [ "$(uname -m)" = x86_64 ] && \
+            [ -x /usr/libexec/qemu-kvm ]; then
+        QEMU_BIN=/usr/libexec/qemu-kvm
+    fi
+fi
+
 rm -f "$disk"
 truncate -s "$DISK_SIZE" "$disk"
 
@@ -33,7 +43,7 @@ firmware=
 accel="-enable-kvm"
 fw_names="OVMF_CODE_4M.fd OVMF_CODE.fd edk2-x86_64-code.fd"
 fw_dirs="/usr/share/OVMF /usr/share/qemu"
-fw_dirs="$fw_dirs $(qemu-system-x86_64 -L help 2>/dev/null)"
+fw_dirs="$fw_dirs $("$QEMU_BIN" -L help 2>/dev/null || true)"
 
 for d in $fw_dirs; do
     [ -d "$d" ] || continue
@@ -54,7 +64,7 @@ fi
 [ -e /dev/kvm ] || accel=
 
 # See also https://jimmyg.org/blog/2024/macos-qemu/index.html
-qemu-system-x86_64 $accel \
+"$QEMU_BIN" $accel \
                         -smp "$QEMU_SMP" -m "$QEMU_MEM" \
                         -drive file="$firmware",if=pflash,unit=0,readonly=on \
                         -cdrom "$image" \

@@ -1,6 +1,18 @@
 #!/bin/sh -exu
 
-# To install dependencies:
+# Rocky Linux 10 on a native aarch64 host (for example, GB200):
+# sudo dnf install -y qemu-kvm qemu-kvm-device-display-virtio-gpu-pci \
+#     edk2-aarch64 coreutils
+# sudo modprobe kvm
+# sudo usermod -aG kvm "$USER"
+# Log out and back in after changing group membership, then verify:
+# test -x /usr/libexec/qemu-kvm && echo "QEMU installed"
+# test -r /dev/kvm && test -w /dev/kvm && echo "KVM accessible"
+# test -f /usr/share/AAVMF/AAVMF_CODE.fd && echo "UEFI firmware found"
+# Rocky's qemu-kvm build requires native KVM acceleration. Run with:
+# QEMU_ACCEL=kvm QEMU_CPU=host ./run-iso-arm64.sh <iso> <disk_file>
+#
+# Debian/Ubuntu:
 # sudo apt install qemu-system-arm qemu-efi-aarch64
 
 if [ $# -lt 2 ]; then
@@ -23,6 +35,16 @@ shift 2
 : "${QEMU_MEM:=4096}"
 : "${DISK_SIZE:=50G}"
 
+# RHEL-family QEMU packages use /usr/libexec/qemu-kvm for the native system
+# emulator. Keep the upstream binary name for cross-architecture emulation.
+if [ -z "${QEMU_BIN:-}" ]; then
+    QEMU_BIN=qemu-system-aarch64
+    if [ -f /etc/redhat-release ] && [ "$(uname -m)" = aarch64 ] && \
+            [ -x /usr/libexec/qemu-kvm ]; then
+        QEMU_BIN=/usr/libexec/qemu-kvm
+    fi
+fi
+
 rm -f "$disk"
 truncate -s "$DISK_SIZE" "$disk"
 
@@ -32,7 +54,7 @@ truncate -s "$DISK_SIZE" "$disk"
 firmware=
 fw_names="AAVMF_CODE.fd QEMU_EFI.fd QEMU_EFI-pflash.raw QEMU_EFI-silent-pflash.raw edk2-aarch64-code.fd"
 fw_dirs="/usr/share/AAVMF /usr/share/qemu-efi-aarch64 /usr/share/edk2/aarch64 /usr/share/qemu"
-fw_dirs="$fw_dirs $(qemu-system-aarch64 -L help 2>/dev/null || true)"
+fw_dirs="$fw_dirs $("$QEMU_BIN" -L help 2>/dev/null || true)"
 
 for d in $fw_dirs; do
     [ -d "$d" ] || continue
@@ -50,7 +72,7 @@ if [ -z "$firmware" ]; then
 fi
 
 # See also https://jimmyg.org/blog/2024/macos-qemu/index.html
-qemu-system-aarch64 -machine virt -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
+"$QEMU_BIN" -machine virt -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -smp "$QEMU_SMP" -m "$QEMU_MEM" \
                         -bios "$firmware" \
                         -cdrom "$image" \

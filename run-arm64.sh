@@ -23,13 +23,23 @@ shift
 : "${QEMU_MEM:=4096}"
 : "${QEMU_PORT:=8022}"
 
+# RHEL-family QEMU packages use /usr/libexec/qemu-kvm for the native system
+# emulator. Keep the upstream binary name for cross-architecture emulation.
+if [ -z "${QEMU_BIN:-}" ]; then
+    QEMU_BIN=qemu-system-aarch64
+    if [ -f /etc/redhat-release ] && [ "$(uname -m)" = aarch64 ] && \
+            [ -x /usr/libexec/qemu-kvm ]; then
+        QEMU_BIN=/usr/libexec/qemu-kvm
+    fi
+fi
+
 # Locate the aarch64 UEFI firmware. Search the well-known Linux AAVMF/edk2
 # locations first, then the data dirs QEMU itself reports via "-L help" (this
 # covers Homebrew/macOS regardless of the installed version).
 firmware=
 fw_names="AAVMF_CODE.fd QEMU_EFI.fd QEMU_EFI-pflash.raw QEMU_EFI-silent-pflash.raw edk2-aarch64-code.fd"
 fw_dirs="/usr/share/AAVMF /usr/share/qemu-efi-aarch64 /usr/share/edk2/aarch64 /usr/share/qemu"
-fw_dirs="$fw_dirs $(qemu-system-aarch64 -L help 2>/dev/null || true)"
+fw_dirs="$fw_dirs $("$QEMU_BIN" -L help 2>/dev/null || true)"
 
 for d in $fw_dirs; do
     [ -d "$d" ] || continue
@@ -49,7 +59,7 @@ fi
 # Alternative non-UEFI bios:
 # -bios u-boot.bin
 # See also https://jimmyg.org/blog/2024/macos-qemu/index.html
-qemu-system-aarch64 -machine virt  -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
+"$QEMU_BIN" -machine virt  -accel "$QEMU_ACCEL" -cpu "$QEMU_CPU" \
                         -smp "$QEMU_SMP" -m "$QEMU_MEM" \
                         -bios "$firmware" \
                         -netdev user,id=net0,hostfwd=tcp::"$QEMU_PORT"-:22 \
@@ -73,7 +83,7 @@ if [ "$arch" = armhf ]; then
                     -drive if=virtio,file="$image",format=raw \
                     -serial mon:stdio -semihosting
 else
-    qemu-system-aarch64 -machine virt -cpu cortex-a57 -smp 2 -m 4096 \
+    "$QEMU_BIN" -machine virt -cpu cortex-a57 -smp 2 -m 4096 \
                         -bios u-boot.bin \
                         -netdev user,id=net0,hostfwd=tcp::8022-:22 \
                         -device virtio-net-pci,netdev=net0 \
