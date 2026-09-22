@@ -80,6 +80,7 @@ tpm_sock=/var/snap/test-snapd-swtpm/current/swtpm-sock
         -object rng-random,filename=/dev/urandom,id=rng0 \
         -device virtio-rng-pci,rng=rng0,id=rng-device0 \
         -device virtio-gpu-pci \
-        -device virtio-keyboard \
+        -device qemu-xhci,id=xhci \
+        -device usb-kbd,bus=xhci.0 \
         -device virtio-mouse \
         -serial mon:stdio

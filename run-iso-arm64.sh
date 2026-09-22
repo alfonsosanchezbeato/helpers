@@ -33,7 +33,7 @@ shift 2
 : "${QEMU_CPU:=max}"
 : "${QEMU_SMP:=2}"
 : "${QEMU_MEM:=4096}"
-: "${DISK_SIZE:=50G}"
+: "${DISK_SIZE:=75G}"
 
 # RHEL-family QEMU packages use /usr/libexec/qemu-kvm for the native system
 # emulator. Keep the upstream binary name for cross-architecture emulation.
@@ -81,6 +81,7 @@ fi
                         -drive file="$disk",if=none,format=raw,id=disk1 \
                         -device virtio-blk-pci,drive=disk1,serial=DISK000A \
                         -device virtio-gpu-pci \
-                        -device virtio-keyboard \
+                        -device qemu-xhci,id=xhci \
+                        -device usb-kbd,bus=xhci.0 \
                         -device virtio-mouse \
                         -serial mon:stdio "$@"

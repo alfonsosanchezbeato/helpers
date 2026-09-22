@@ -1,4 +1,6 @@
 #!/bin/bash -ex
+# Debian/Ubuntu:
+# sudo apt install qemu-system-x86 ovmf
 
 if [ $# -lt 1 ]; then
     printf "Usage: %s <image_file> <more_qemu_options>\n" "$(basename "$0")"

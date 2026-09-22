@@ -67,7 +67,8 @@ fi
                         -drive file="$image",if=none,format=raw,id=disk1 \
                         -device virtio-blk-pci,drive=disk1,serial=DISK000A \
                         -device virtio-gpu-pci \
-                        -device virtio-keyboard \
+                        -device qemu-xhci,id=xhci \
+                        -device usb-kbd,bus=xhci.0 \
                         -device virtio-mouse \
                         -serial mon:stdio "$@"
 exit 0
