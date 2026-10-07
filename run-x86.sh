@@ -37,7 +37,7 @@ format=$(qemu-img info --output=json "$img" | jq -r .format)
 # first, then the data dirs QEMU itself reports via "-L help" (this covers
 # Homebrew/macOS regardless of the installed version).
 firmware=
-accel="-enable-kvm"
+accel=(-enable-kvm -cpu host)
 fw_names=(OVMF_CODE_4M.fd OVMF_CODE.fd edk2-x86_64-code.fd)
 fw_dirs=(/usr/share/OVMF /usr/share/qemu)
 while read -r d; do
@@ -59,9 +59,9 @@ if [ -z "$firmware" ]; then
 fi
 
 # No KVM on a non-Linux host (e.g. Apple Silicon); fall back to TCG emulation.
-[ -e /dev/kvm ] || accel=
+[ -e /dev/kvm ] || accel=()
 
-"$QEMU_BIN" $accel \
+"$QEMU_BIN" "${accel[@]}" \
     -smp "$QEMU_SMP" -m "$QEMU_MEM" \
     -drive file="$firmware",if=pflash,unit=0,readonly=on \
     -netdev user,id=net0,hostfwd=tcp::"$QEMU_SSH_PORT"-:22,hostfwd=tcp::$((QEMU_SSH_PORT+100))-:31111,hostname=qemu \
