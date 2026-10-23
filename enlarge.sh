@@ -1,4 +1,15 @@
 #!/bin/bash -ex
+#
+# enlarge.sh - Double the size of the last partition of a GPT disk image.
+#
+# Usage: enlarge.sh <image-file>
+#
+# The partition located at the end of the image (highest start sector) is
+# found, the image file is grown by that partition's current size, the
+# backup GPT header is moved to the new end, and the partition and its ext
+# filesystem are extended to fill the new space.
+#
+# Requires: sfdisk, sgdisk, growpart, jq, e2fsck, resize2fs, losetup (sudo).
 
 img=$1
 
